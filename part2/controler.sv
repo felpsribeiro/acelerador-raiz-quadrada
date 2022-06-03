@@ -1,12 +1,12 @@
 module controler(
     input clock,
     input reset,
-    input flag,
-    output [8:0] saida
+    input done,
+    output [8:0] out
 );
 
     typedef enum logic [1:0] {A, B, C, D} statetype;
-    statetype state, nextstate;
+    statetype state = A, nextstate;
 
     always_ff @ (negedge reset, negedge clock)
         if (!reset) state <= A;
@@ -15,24 +15,24 @@ module controler(
     always_comb
         case(state)
             A: begin
-                saida <= 9'b001101000;
+                out <= 9'b001101000;
                 nextstate <= B;
             end
 
             B: begin
-                saida <= 9'b101010101;
-                nextstate = C;
+                out <= 9'b101010100;
+                nextstate <= C;
             end
 
             C: begin
-                saida <= 9'b010100110;
-                nextstate = D;
+                out <= 9'b010100111;
+                nextstate <= D;
             end
 
             D: begin
-                saida <= 9'b000000011;
-                if(flag) nextstate = A; // encerra o processo
-                else nextstate = B; // continua o processo
+                out <= 9'b000000011;
+                if(done) nextstate <= A;
+                else nextstate <= B;
             end
         endcase
 
