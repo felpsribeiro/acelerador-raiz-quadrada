@@ -2,7 +2,7 @@
     #(parameter n = 8)
     (
         input [n-1:0] data_in,
-        input clock, reset, write_enable,
+        input clock, reset, enable,
         output [n-1:0] data_out
     );
 
@@ -10,7 +10,7 @@
 
     always @(posedge clock, negedge reset) begin
         if(!reset) data_aux = 0;
-        else if (write_enable) data_aux = data_in;
+        else if (enable) data_aux = data_in;
     end
 
     assign data_out = data_aux;
