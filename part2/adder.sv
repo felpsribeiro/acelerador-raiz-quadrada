@@ -1,17 +1,13 @@
 module adder
     #(parameter n = 8)
     (
+        input cin,
         input [n-1:0] a, b,
-        input cin, clock, reset, 
-        output [n-1:0] q
+        output [n-1:0] q,
+        output n
     );
-    
-    logic [n-1:0] aux;
 
-    always @(posedge clock, negedge reset)
-        if (!reset) aux = 0;
-        else aux = a + b + cin;
-
-    assign q = aux;
+    assign q = a + b + cin;
+    assign n = !q[n-1];
 
 endmodule
