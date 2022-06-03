@@ -2,40 +2,47 @@ module raiz
     #(parameter n = 8)
     (
         input [n-1:0] data_in,
-        input [8:0] controle,
+        input [8:0] controler,
         input clock, reset,
-        output [n-1:0] raiz,
-        output [] ciclos,
+        output [n-1:0] data_out,
+        output [31:0] cycles = 0,
         output done
     );
 
-    logic [n-1:0] sig_ula, sig_desl;
+    //-------------------- Outputs Modules -----------------------
+    // Muxs
+    logic [n-1:0] sig_muxD, sig_muxS, sig_muxA, sig_muxB;
+    // Registers
+    logic [n-1:0] sigD, sigS, sigR, sigX;
+    // ULA
+    logic [n-1:0] sig_ula;
+    // Desl
+    logic [n-1:0] sig_desl;
 
-    logic [n-1:0] sig_muxD, sigD;
-    mux2 muxD (.a(sig_ula), .b(2), .s(controle[8]), .clock(clock), .reset(reset), .q(sig_muxD));
-    register D (.data_in(sig_muxD), .write_enable(controle[6]), .clock(clock), .reset(reset), .data_out(sigD));
-    
-    logic [n-1:0] sig_muxS, sigS;
-    mux2 muxS (.a(sig_ula), .b(4), .s(controle[7]), .clock(clock), .reset(reset), .q(sig_muxS));
-    register S (.data_in(sig_muxS), .write_enable(controle[5]), .clock(clock), .reset(reset), .data_out(sigS));
- 
-    logic [n-1:0] sigR;
-    register R (.data_in(sig_desl), .write_enable(controle[4]), .clock(clock), .reset(reset), .data_out(sigR));
-    
-    logic [n-1:0] sigX;
-    register X (.data_in(data_in), .write_enable(controle[3]), .clock(clock), .reset(reset), .data_out(sigX));
-    
-    logic [n-1:0] sig_muxA;
-    mux2 muxA (.a(sigD), .b(~(sigX)), .s(controle[2]), .clock(clock), .reset(reset), .q(sig_muxA));
-    
-    logic [n-1:0] sig_muxB;
-    mux2 muxB (.a(2), .b(sigS), .s(controle[1]), .clock(clock), .reset(reset), .q(sig_muxB));
-    
-    logic sig_cin;
-    mux2 #(.n(1)) muxULA (.a(controle[1]), .b(controle[2]), .s(controle[0]), .clock(clock), .reset(reset), .q(sig_cin));
+    //-------------------- Modules -------------------------------
+    // Muxs
+    mux2 #(n) muxD (.a(sig_ula), .b(2),       .s(controler[8]), .q(sig_muxD));
+    mux2 #(n) muxS (.a(sig_ula), .b(4),       .s(controler[7]), .q(sig_muxS));
+    mux2 #(n) muxA (.a(sigD),    .b(~(sigX)), .s(controler[2]), .q(sig_muxA));
+    mux2 #(n) muxB (.a(sigS),    .b(2),       .s(controler[1]), .q(sig_muxB));
+    // Registrers
+    register #(n) rD (.data_in(sig_muxD), .enable(controler[6]), .data_out(sigD), .clock(clock), .reset(reset));
+    register #(n) rS (.data_in(sig_muxS), .enable(controler[5]), .data_out(sigS), .clock(clock), .reset(reset));
+    register #(n) rR (.data_in(sig_desl), .enable(controler[4]), .data_out(sigR), .clock(clock), .reset(reset));
+    register #(n) rX (.data_in(data_in),  .enable(controler[3]), .data_out(sigX), .clock(clock), .reset(reset));
+    // ULA
+    adder #(n) ula(.a(sig_muxA), .b(sig_muxB), .cin(controler[0]), .q(sig_ula), .n(done));
+    // Desl
+    shifter #(n) desl(.in(sig_ula), .out(sig_desl));
 
-    adder ula(.a(sig_muxA), .b(sig_muxB), .cin(sig_cin), .clock(clock), .reset(reset), .q(sig_ula));
+    //-------------------- Outputs Raiz --------------------------
+    assign data_out = sigR;
 
-    shifter desl(.in(sig_ula), .clock(clock), .reset(reset), .out(sig_desl));
+    always @(posedge clock, negedge reset)
+        if(!reset) begin 
+            data_out = 0;
+            cycles = 0;
+        end
+        else cycles = cycles + 1;
 
 endmodule
