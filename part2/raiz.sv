@@ -5,9 +5,13 @@ module raiz
         input [8:0] controler,
         input clock, reset,
         output [n-1:0] data_out,
-        output [31:0] cycles = 0,
+        output [31:0] cycles,
         output done
     );
+
+    //-------------------- Register ------------------------------
+    logic [n-1:0] data_out_register;
+    logic [31:0] cycles_register;
 
     //-------------------- Outputs Modules -----------------------
     // Muxs
@@ -26,23 +30,19 @@ module raiz
     mux2 #(n) muxA (.a(sigD),    .b(~(sigX)), .s(controler[2]), .q(sig_muxA));
     mux2 #(n) muxB (.a(sigS),    .b(2),       .s(controler[1]), .q(sig_muxB));
     // Registrers
-    register #(n) rD (.data_in(sig_muxD), .enable(controler[6]), .data_out(sigD), .clock(clock), .reset(reset));
-    register #(n) rS (.data_in(sig_muxS), .enable(controler[5]), .data_out(sigS), .clock(clock), .reset(reset));
-    register #(n) rR (.data_in(sig_desl), .enable(controler[4]), .data_out(sigR), .clock(clock), .reset(reset));
-    register #(n) rX (.data_in(data_in),  .enable(controler[3]), .data_out(sigX), .clock(clock), .reset(reset));
+    register #(n) rD (.data_in(sig_muxD), .enable(controler[6]), .data_out(sigD),     .clock(clock), .reset(reset));
+    register #(n) rS (.data_in(sig_muxS), .enable(controler[5]), .data_out(sigS),     .clock(clock), .reset(reset));
+    register #(n) rR (.data_in(sig_desl), .enable(controler[4]), .data_out(data_out), .clock(clock), .reset(reset));
+    register #(n) rX (.data_in(data_in),  .enable(controler[3]), .data_out(sigX),     .clock(clock), .reset(reset));
     // ULA
-    adder #(n) ula(.a(sig_muxA), .b(sig_muxB), .cin(controler[0]), .q(sig_ula), .n(done));
+    adder #(n) ula(.a(sig_muxA), .b(sig_muxB), .cin(controler[0]), .q(sig_ula), .positive_number(done));
     // Desl
     shifter #(n) desl(.in(sig_ula), .out(sig_desl));
 
-    //-------------------- Outputs Raiz --------------------------
-    assign data_out = sigR;
+    //-------------------- Set Outputs --------------------------
+    always @(posedge clock)
+        cycles_register = cycles_register + 1;
 
-    always @(posedge clock, negedge reset)
-        if(!reset) begin 
-            data_out = 0;
-            cycles = 0;
-        end
-        else cycles = cycles + 1;
+    assign cycles = cycles_register;
 
 endmodule
